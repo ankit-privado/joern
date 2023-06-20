@@ -2,8 +2,9 @@ package io.joern.rubysrc2cpg.astcreation
 import io.joern.rubysrc2cpg.parser.RubyParser._
 import io.joern.rubysrc2cpg.parser.{RubyLexer, RubyParser}
 import io.joern.rubysrc2cpg.passes.Defines
+import io.joern.rubysrc2cpg.utils.{PackageContext, PackageTable}
 import io.joern.x2cpg.Ast.storeInDiffGraph
-import io.joern.x2cpg.Defines.DynamicCallUnknownFullName
+import io.joern.x2cpg.Defines.{DynamicCallUnknownFullName, UnresolvedSignature}
 import io.joern.x2cpg.datastructures.{Global, Scope}
 import io.joern.x2cpg.{Ast, AstCreatorBase, AstNodeBuilder}
 import io.shiftleft.codepropertygraph.generated.nodes._
@@ -17,8 +18,9 @@ import java.util
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
+import better.files.File
 
-class AstCreator(filename: String, global: Global)
+class AstCreator(filename: String, global: Global, packageContext: PackageContext)
     extends AstCreatorBase(filename)
     with AstNodeBuilder[ParserRuleContext, AstCreator]
     with AstForPrimitivesCreator
@@ -30,6 +32,8 @@ class AstCreator(filename: String, global: Global)
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   private val classStack = mutable.Stack[String]()
+
+  private val packageStack = mutable.Stack[String]()
 
   /*
    * Stack of variable identifiers incorrectly identified as method identifiers
@@ -1079,10 +1083,15 @@ class AstCreator(filename: String, global: Global)
   }
 
   def astForCallNode(localIdentifier: TerminalNode, code: String): Seq[Ast] = {
-    val column         = localIdentifier.getSymbol().getCharPositionInLine()
-    val line           = localIdentifier.getSymbol().getLine()
-    val name           = getActualMethodName(localIdentifier.getText)
-    val methodFullName = s"$filename:$name"
+    val column                       = localIdentifier.getSymbol().getCharPositionInLine()
+    val line                         = localIdentifier.getSymbol().getLine()
+    val name                         = getActualMethodName(localIdentifier.getText)
+    var methodFullName               = s"$filename.$name"
+    val externalDependencyResolution = packageContext.packageTable.getMethodFullNameUsingName(packageStack.toList, name)
+
+    if (externalDependencyResolution.nonEmpty) {
+      methodFullName = externalDependencyResolution.head
+    }
 
     val callNode = NewCall()
       .name(name)
@@ -1389,7 +1398,7 @@ class AstCreator(filename: String, global: Global)
      * we will discard the call node since it is of no further use to us
      */
 
-    val classPath = classStack.toList.mkString(".") + "."
+    val classPath = classStack.reverse.toList.mkString(".") + "."
     val methodNode = NewMethod()
       .code(ctx.getText)
       .name(callNode.name)
@@ -1399,6 +1408,9 @@ class AstCreator(filename: String, global: Global)
       .lineNumberEnd(ctx.END().getSymbol.getLine)
       .filename(filename)
     callNode.methodFullName(classPath + callNode.name)
+
+    val classType = if (classStack.isEmpty) "Standalone" else classStack.top
+    packageContext.packageTable.addPackageMethod(packageContext.moduleName, callNode.name, classPath, classType)
 
     val methodRetNode = NewMethodReturn()
       .lineNumber(None)
@@ -1856,31 +1868,16 @@ class AstCreator(filename: String, global: Global)
       methodNameAsIdentifierStack.push(methodIdentifierAsts.head)
       val argsAsts = astForArgumentsWithoutParenthesesContext(ctx.argumentsWithoutParentheses())
 
-      val callNodes = methodIdentifierAsts.head.nodes.filter(node => node.isInstanceOf[NewCall])
+      val callNodes = methodIdentifierAsts.head.nodes.collect { case x: NewCall => x }
       if (callNodes.size == 1) {
-        val callNode = callNodes.head.asInstanceOf[NewCall]
-        if (
-          callNode.name == "require" ||
-          callNode.name == "require_once" ||
-          callNode.name == "load"
-        ) {
-          val literalImports = argsAsts.head.nodes
-            .filter(node => node.isInstanceOf[NewLiteral])
-
-          if (literalImports.size == 1) {
-            val importedFile =
-              literalImports.head
-                .asInstanceOf[NewLiteral]
-                .code
-            println(s"AST to be created for imported file ${importedFile}")
-          } else {
-            println(
-              s"Cannot process import since it is determined on the fly. Just creating a call node for later processing"
-            )
-            Seq(callAst(callNode, argsAsts))
-          }
+        val callNode = callNodes.head
+        if (callNode.name == "require" || callNode.name == "load") {
+          resolveRequireOrLoadPath(argsAsts)
+        } else if (callNode.name == "require_relative") {
+          resolveRelativePath(filename, argsAsts)
+        } else {
+          Seq(callAst(callNode, argsAsts))
         }
-        Seq(callAst(callNode, argsAsts))
       } else {
         argsAsts
       }
@@ -1937,5 +1934,48 @@ class AstCreator(filename: String, global: Global)
 
   def astForYieldWithOptionalArgumentPrimaryContext(ctx: YieldWithOptionalArgumentPrimaryContext): Seq[Ast] = {
     astForYieldWithOptionalArgumentContext(ctx.yieldWithOptionalArgument())
+  }
+
+  private def resolveRequireOrLoadPath(argsAst: Seq[Ast]): Seq[Ast] = {
+    val importedNode = argsAst.head.nodes.collect { case x: NewLiteral => x }
+    if (importedNode.size == 1) {
+      val node      = importedNode.head
+      val pathValue = node.code.replaceAll("'", "").replaceAll("\"", "")
+      val result = pathValue match {
+        case path if File(path).exists =>
+          path
+        case path if File(s"$path.rb").exists =>
+          s"${path}.rb"
+        case _ =>
+          pathValue
+      }
+      packageStack.append(result)
+      astForImportNode(node.code)
+    } else {
+      Seq(Ast())
+    }
+  }
+
+  private def resolveRelativePath(currentFile: String, argsAst: Seq[Ast]): Seq[Ast] = {
+    val importedNode = argsAst.head.nodes.collect { case x: NewLiteral => x }
+    if (importedNode.size == 1) {
+      val node        = importedNode.head
+      val pathValue   = node.code.replaceAll("'", "").replaceAll("\"", "")
+      val updatedPath = if (pathValue.endsWith(".rb")) pathValue else s"$pathValue.rb"
+
+      val currentDirectory = File(currentFile).parent
+      val file             = File(currentDirectory, updatedPath)
+      packageStack.append(file.pathAsString)
+      astForImportNode(node.code)
+    } else {
+      Seq(Ast())
+    }
+  }
+
+  private def astForImportNode(code: String): Seq[Ast] = {
+    // fully implemented later
+    val importNode = NewImport()
+      .code(code)
+    Seq(Ast(importNode))
   }
 }
