@@ -23,7 +23,7 @@ class RubyMethodFullNameTests extends RubyCode2CpgFixture(true) with BeforeAndAf
     )
       .moreCode(
         """
-          |source 'https://rubygems.org'
+          |source 'http://rubygems.org'
           |gem 'dummy_logger'
           |
           |""".stripMargin,
