@@ -25,7 +25,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       val packageTableInfo = new PackageTable()
       new MetaDataPass(cpg, Languages.RUBYSRC, config.inputPath).createAndApply()
       new ConfigPass(cpg, config.inputPath).createAndApply()
-      if (config.enableDependencyDownload) {
+//      if (config.enableDependencyDownload) {
         val tempDir = File.newTemporaryDirectory()
         try {
           downloadDependency(config.inputPath, tempDir.toString())
@@ -33,7 +33,8 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
         } finally {
           tempDir.delete()
         }
-      }
+//      }
+      packageTableInfo.printInfo()
       val astCreationPass = new AstCreationPass(config.inputPath, cpg, global, packageTableInfo)
       astCreationPass.createAndApply()
       new TypeNodePass(astCreationPass.allUsedTypes(), cpg).createAndApply()
