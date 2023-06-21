@@ -26,13 +26,13 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       new MetaDataPass(cpg, Languages.RUBYSRC, config.inputPath).createAndApply()
       new ConfigPass(cpg, config.inputPath).createAndApply()
 //      if (config.enableDependencyDownload) {
-        val tempDir = File.newTemporaryDirectory()
-        try {
-          downloadDependency(config.inputPath, tempDir.toString())
-          new AstPackagePass(cpg, tempDir.toString(), global, packageTableInfo, config.inputPath).createAndApply()
-        } finally {
-          tempDir.delete()
-        }
+      val tempDir = File.newTemporaryDirectory()
+      try {
+        downloadDependency(config.inputPath, tempDir.toString())
+        new AstPackagePass(cpg, tempDir.toString(), global, packageTableInfo, config.inputPath).createAndApply()
+      } finally {
+        tempDir.delete()
+      }
 //      }
       packageTableInfo.printInfo()
       val astCreationPass = new AstCreationPass(config.inputPath, cpg, global, packageTableInfo)
@@ -48,7 +48,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       println(tempDir)
       println(File(s"$inputPath${java.io.File.separator}Gemfile").exists)
       println(File(tempDir).exists)
-      Try(s"bundler install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir".!!) match {
+      Try(s"bundler install --gemfile=$inputPath${java.io.File.separator}Gemfile".!!) match {
         case Success(bundleOutput) =>
           logger.info(s"Dependency installed successfully: $bundleOutput")
         case Failure(exception) =>

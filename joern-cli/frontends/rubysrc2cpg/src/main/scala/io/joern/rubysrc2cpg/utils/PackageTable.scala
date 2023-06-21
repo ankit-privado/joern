@@ -39,8 +39,8 @@ class PackageTable() {
   def printInfo(): Unit = {
     println(methodTableMap.size)
 
-    for((k, v) <- methodTableMap) {
-      println(" $$$$$$$"  + k )
+    for ((k, v) <- methodTableMap) {
+      println(" $$$$$$$" + k)
       v.foreach(g => {
         println(g.methodName)
       })
