@@ -25,15 +25,15 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       val packageTableInfo = new PackageTable()
       new MetaDataPass(cpg, Languages.RUBYSRC, config.inputPath).createAndApply()
       new ConfigPass(cpg, config.inputPath).createAndApply()
-//      if (config.enableDependencyDownload) {
-      val tempDir = File.newTemporaryDirectory()
-      try {
-        downloadDependency(config.inputPath, tempDir.toString())
-        new AstPackagePass(cpg, tempDir.toString(), global, packageTableInfo, config.inputPath).createAndApply()
-      } finally {
-        tempDir.delete()
+      if (config.enableDependencyDownload) {
+        val tempDir = File.newTemporaryDirectory()
+        try {
+          downloadDependency(config.inputPath, tempDir.toString())
+          new AstPackagePass(cpg, tempDir.toString(), global, packageTableInfo, config.inputPath).createAndApply()
+        } finally {
+          tempDir.delete()
+        }
       }
-//      }
       packageTableInfo.printInfo()
       val astCreationPass = new AstCreationPass(config.inputPath, cpg, global, packageTableInfo)
       astCreationPass.createAndApply()
@@ -47,7 +47,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       println("------------")
       println(s"$inputPath${java.io.File.separator}Gemfile")
       println(tempDir)
-      val dir = File(tempDir).list
+      val dir = File(inputPath).list
       dir.foreach(k => {
         println(k.toString())
       })
