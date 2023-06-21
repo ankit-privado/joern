@@ -46,7 +46,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       println(s"$inputPath${java.io.File.separator}Gemfile")
       println(tempDir)
       println(File(s"$inputPath${java.io.File.separator}Gemfile").exists)
-      println(File(tempDir))
+      println(File(tempDir).exists)
       Try(s"bundler install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir".!!) match {
         case Success(bundleOutput) =>
           logger.info(s"Dependency installed successfully: $bundleOutput")
