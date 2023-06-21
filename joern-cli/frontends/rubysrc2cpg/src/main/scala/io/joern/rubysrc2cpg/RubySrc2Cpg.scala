@@ -42,6 +42,9 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
 
   private def downloadDependency(inputPath: String, tempDir: String): Unit = {
     if ((File(inputPath) / "Gemfile").exists) {
+      println("------------")
+      println(s"$inputPath${java.io.File.separator}Gemfile")
+      println(tempDir)
       Try(s"bundler install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir".!!) match {
         case Success(bundleOutput) =>
           logger.info(s"Dependency installed successfully: $bundleOutput")
