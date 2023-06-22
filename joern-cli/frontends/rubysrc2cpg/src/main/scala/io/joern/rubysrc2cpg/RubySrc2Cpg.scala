@@ -44,7 +44,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
   }
 
   private def downloadDependency(inputPath: String, tempPath: String): Unit = {
-    val cwd = File(inputPath)
+    val cwd     = File(inputPath)
     val tempDir = File(tempPath)
     tempDir.addPermission(PosixFilePermission.OWNER_READ)
     tempDir.addPermission(PosixFilePermission.OWNER_WRITE)
@@ -53,7 +53,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
     tempDir.addPermission(PosixFilePermission.OTHERS_READ)
     tempDir.addPermission(PosixFilePermission.OTHERS_WRITE)
     if (File(s"${cwd.toString()}${java.io.File.separator}Gemfile").exists && tempDir.exists) {
-      var command     = ""
+      var command = ""
       if (sys.props.getOrElse("os.name", "").toLowerCase.contains("win")) {
         command = s"bundle install --path=${tempDir.path.toString}"
       } else {
