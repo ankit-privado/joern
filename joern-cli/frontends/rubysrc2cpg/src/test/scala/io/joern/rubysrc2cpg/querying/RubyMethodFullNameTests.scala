@@ -49,7 +49,7 @@ class RubyMethodFullNameTests extends RubyCode2CpgFixture(true) with BeforeAndAf
 
   "Code for method full name when method present in other file" should {
     val cpg = code(
-      """
+      s"""
         |require_relative "util/help.rb"
         |
         |v = Outer.new

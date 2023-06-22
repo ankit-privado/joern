@@ -46,7 +46,9 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
     if (File(s"$inputPath${java.io.File.separator}Gemfile").exists && File(tempDir).exists) {
       var command = ""
       if (sys.props.getOrElse("os.name", "").toLowerCase.contains("win")) {
-        command = s"bundle install --gemfile=\"$inputPath${java.io.File.separator}Gemfile\" --path=\"$tempDir\""
+        val updatedCommand =
+          s"bundle install --gemfile=\"$inputPath${java.io.File.separator}Gemfile\" --path=\"$tempDir\""
+        command = updatedCommand.replaceAll("//", "////")
       } else {
         command = s"bundle install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir"
       }
