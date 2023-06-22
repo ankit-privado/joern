@@ -46,12 +46,6 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
   private def downloadDependency(inputPath: String, tempPath: String): Unit = {
     val cwd     = File(inputPath)
     val tempDir = File(tempPath)
-    tempDir.addPermission(PosixFilePermission.OWNER_READ)
-    tempDir.addPermission(PosixFilePermission.OWNER_WRITE)
-    tempDir.addPermission(PosixFilePermission.GROUP_READ)
-    tempDir.addPermission(PosixFilePermission.GROUP_WRITE)
-    tempDir.addPermission(PosixFilePermission.OTHERS_READ)
-    tempDir.addPermission(PosixFilePermission.OTHERS_WRITE)
     if (File(s"${cwd.toString()}${java.io.File.separator}Gemfile").exists && tempDir.exists) {
       var command = ""
       if (sys.props.getOrElse("os.name", "").toLowerCase.contains("win")) {
