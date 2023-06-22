@@ -12,6 +12,7 @@ import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.Languages
 import org.slf4j.LoggerFactory
 
+import java.nio.file.attribute.{PosixFilePermission, PosixFilePermissions}
 import scala.sys.process._
 import scala.util.{Failure, Success, Try}
 
@@ -42,15 +43,19 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
     }
   }
 
-  private def downloadDependency(inputPath: String, tempDir: String): Unit = {
-    println("popoptttttt")
-    if (File(s"$inputPath${java.io.File.separator}Gemfile").exists && File(tempDir).exists) {
-      val gemFile = File(s"$inputPath${java.io.File.separator}Gemfile")
-      val tempDirPath = File(tempDir)
-      var command = ""
+  private def downloadDependency(inputPath: String, tempPath: String): Unit = {
+    val cwd = File(inputPath)
+    val tempDir = File(tempPath)
+    tempDir.addPermission(PosixFilePermission.OWNER_READ)
+    tempDir.addPermission(PosixFilePermission.OWNER_WRITE)
+    tempDir.addPermission(PosixFilePermission.GROUP_READ)
+    tempDir.addPermission(PosixFilePermission.GROUP_WRITE)
+    tempDir.addPermission(PosixFilePermission.OTHERS_READ)
+    tempDir.addPermission(PosixFilePermission.OTHERS_WRITE)
+    if (File(s"${cwd.toString()}${java.io.File.separator}Gemfile").exists && tempDir.exists) {
+      var command     = ""
       if (sys.props.getOrElse("os.name", "").toLowerCase.contains("win")) {
-        command =
-          s"bundle install --path=${tempDirPath.path.toString}"
+        command = s"bundle install --path=${tempDir.path.toString}"
       } else {
         command = s"bundle install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir"
       }
