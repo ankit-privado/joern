@@ -51,7 +51,12 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       dir.foreach(k => {
         println(k.toString())
       })
-      Try(s"bundle install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir".!!) match {
+      val command = s"bundle install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir"
+      println(command)
+      val g = s"fdf${java.io.File.separator}lkl"
+      println(g)
+      println("popopopopo")
+      Try(command.!!) match {
         case Success(bundleOutput) =>
           logger.info(s"Dependency installed successfully: $bundleOutput")
         case Failure(exception) =>
