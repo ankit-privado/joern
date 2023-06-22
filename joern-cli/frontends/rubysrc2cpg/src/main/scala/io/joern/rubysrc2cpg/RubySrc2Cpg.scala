@@ -1,6 +1,5 @@
 package io.joern.rubysrc2cpg
 
-import better.files.File
 import io.joern.rubysrc2cpg.passes.{AstCreationPass, AstPackagePass, ConfigPass}
 import io.joern.rubysrc2cpg.utils.PackageTable
 import io.joern.x2cpg.X2Cpg.withNewEmptyCpg
@@ -12,8 +11,7 @@ import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.Languages
 import org.slf4j.LoggerFactory
 
-import java.nio.file.attribute.{PosixFilePermission, PosixFilePermissions}
-import scala.sys.process._
+import java.nio.file.{Files, Paths}
 import scala.util.{Failure, Success, Try}
 
 class RubySrc2Cpg extends X2CpgFrontend[Config] {
@@ -28,13 +26,11 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       new MetaDataPass(cpg, Languages.RUBYSRC, config.inputPath).createAndApply()
       new ConfigPass(cpg, config.inputPath).createAndApply()
       if (config.enableDependencyDownload) {
-        val tempDir = File.newTemporaryDirectory().addPermission(PosixFilePermission.OTHERS_WRITE)
+        val tempDir = Files.createTempDirectory(null)
         try {
-          downloadDependency(config.inputPath, tempDir.toString())
-          new AstPackagePass(cpg, tempDir.toString(), global, packageTableInfo, config.inputPath).createAndApply()
-        } finally {
-          tempDir.delete()
-        }
+          downloadDependency(config.inputPath, tempDir.toString)
+          new AstPackagePass(cpg, tempDir.toString, global, packageTableInfo, config.inputPath).createAndApply()
+        } finally {}
       }
       packageTableInfo.printInfo()
       val astCreationPass = new AstCreationPass(config.inputPath, cpg, global, packageTableInfo)
@@ -44,22 +40,15 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
   }
 
   private def downloadDependency(inputPath: String, tempPath: String): Unit = {
-    val cwd     = File(inputPath)
-    val tempDir = File(tempPath)
-    if (File(s"${cwd.toString()}${java.io.File.separator}Gemfile").exists && tempDir.exists) {
-      var command = ""
-        ExternalCommand.run(s"bundle config set --local path ${tempDir.path.toString}", File(inputPath).path.toString) match {
-          case Success(configOutput) =>
-            println(configOutput)
-          case Failure(exception) =>
-            println(exception.getMessage)
-        }
-
-        command = s"bundle install"
-
-      println(command)
-
-      ExternalCommand.run(command, File(inputPath).path.toString) match {
+    if (Files.isRegularFile(Paths.get(s"${inputPath}${java.io.File.separator}Gemfile"))) {
+      ExternalCommand.run(s"bundle config set --local path ${tempPath}", inputPath) match {
+        case Success(configOutput) =>
+          println(configOutput)
+        case Failure(exception) =>
+          println(exception.getMessage)
+      }
+      val command = s"bundle install"
+      ExternalCommand.run(command, inputPath) match {
         case Success(bundleOutput) =>
           logger.info(s"Dependency installed successfully: $bundleOutput")
         case Failure(exception) =>
