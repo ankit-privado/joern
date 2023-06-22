@@ -48,7 +48,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       if (sys.props.getOrElse("os.name", "").toLowerCase.contains("win")) {
         val updatedCommand =
           s"bundle install --gemfile=\"$inputPath${java.io.File.separator}Gemfile\" --path=\"$tempDir\""
-        command = updatedCommand.replaceAll("//", "////")
+        command = updatedCommand.replace("\\", "\\\\")
       } else {
         command = s"bundle install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir"
       }
