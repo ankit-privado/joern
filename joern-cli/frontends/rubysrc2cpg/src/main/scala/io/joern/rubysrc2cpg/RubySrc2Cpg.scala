@@ -46,19 +46,17 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
   private def downloadDependency(inputPath: String, tempPath: String): Unit = {
     val cwd     = File(inputPath)
     val tempDir = File(tempPath)
+    tempDir.setPermissions(Set(PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OWNER_WRITE, PosixFilePermission.GROUP_WRITE))
     if (File(s"${cwd.toString()}${java.io.File.separator}Gemfile").exists && tempDir.exists) {
       var command = ""
-      if (sys.props.getOrElse("os.name", "").toLowerCase.contains("win")) {
         ExternalCommand.run(s"bundle config set --local path ${tempDir.path.toString}", File(inputPath).path.toString) match {
           case Success(configOutput) =>
             println(configOutput)
           case Failure(exception) =>
             println(exception.getMessage)
         }
+
         command = s"bundle install"
-      } else {
-        command = s"bundle install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir"
-      }
 
       println(command)
 
