@@ -7,6 +7,7 @@ import io.joern.x2cpg.X2Cpg.withNewEmptyCpg
 import io.joern.x2cpg.X2CpgFrontend
 import io.joern.x2cpg.datastructures.Global
 import io.joern.x2cpg.passes.frontend.{MetaDataPass, TypeNodePass}
+import io.joern.x2cpg.utils.ExternalCommand
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.Languages
 import org.slf4j.LoggerFactory
@@ -44,18 +45,19 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
   private def downloadDependency(inputPath: String, tempDir: String): Unit = {
     println("popoptttttt")
     if (File(s"$inputPath${java.io.File.separator}Gemfile").exists && File(tempDir).exists) {
+      val gemFile = File(s"$inputPath${java.io.File.separator}Gemfile")
+      val tempDirPath = File(tempDir)
       var command = ""
       if (sys.props.getOrElse("os.name", "").toLowerCase.contains("win")) {
-        val updatedCommand =
-          s"bundle install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir"
-        command = updatedCommand.replace("\\", "\\\\")
+        command =
+          s"bundle install --path=${tempDirPath.path.toString}"
       } else {
         command = s"bundle install --gemfile=$inputPath${java.io.File.separator}Gemfile --path=$tempDir"
       }
 
       println(command)
 
-      Try(command.!!) match {
+      ExternalCommand.run(command, File(inputPath).path.toString) match {
         case Success(bundleOutput) =>
           logger.info(s"Dependency installed successfully: $bundleOutput")
         case Failure(exception) =>
