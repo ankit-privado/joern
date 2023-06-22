@@ -78,6 +78,7 @@ class RubyMethodFullNameTests extends RubyCode2CpgFixture(true) with BeforeAndAf
     }
 
     "recognise method full name for call node" in {
+      println(cpg.call.name("printValue").head.methodFullName)
       cpg.call
         .name("printValue")
         .head

@@ -28,7 +28,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       new MetaDataPass(cpg, Languages.RUBYSRC, config.inputPath).createAndApply()
       new ConfigPass(cpg, config.inputPath).createAndApply()
       if (config.enableDependencyDownload) {
-        val tempDir = File.newTemporaryDirectory()
+        val tempDir = File.newTemporaryDirectory().addPermission(PosixFilePermission.OTHERS_WRITE)
         try {
           downloadDependency(config.inputPath, tempDir.toString())
           new AstPackagePass(cpg, tempDir.toString(), global, packageTableInfo, config.inputPath).createAndApply()
@@ -46,7 +46,6 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
   private def downloadDependency(inputPath: String, tempPath: String): Unit = {
     val cwd     = File(inputPath)
     val tempDir = File(tempPath)
-    tempDir.setPermissions(Set(PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OWNER_WRITE, PosixFilePermission.GROUP_WRITE))
     if (File(s"${cwd.toString()}${java.io.File.separator}Gemfile").exists && tempDir.exists) {
       var command = ""
         ExternalCommand.run(s"bundle config set --local path ${tempDir.path.toString}", File(inputPath).path.toString) match {
