@@ -11,6 +11,7 @@ import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.Languages
 import org.slf4j.LoggerFactory
 
+import java.io.File
 import java.nio.file.attribute.{PosixFilePermission, PosixFilePermissions}
 import java.nio.file.{Files, Paths}
 import scala.util.{Failure, Success, Try}
@@ -28,8 +29,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
       new ConfigPass(cpg, config.inputPath).createAndApply()
       if (config.enableDependencyDownload) {
         val tempDir = Files.createTempDirectory(null)
-        val permissions = PosixFilePermissions.fromString("rwxr-x---")
-        Files.setPosixFilePermissions(tempDir, permissions)
+        changePermission(tempDir.toString)
         try {
           downloadDependency(config.inputPath, tempDir.toString)
           new AstPackagePass(cpg, tempDir.toString, global, packageTableInfo, config.inputPath).createAndApply()
@@ -58,5 +58,12 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
           logger.error(s"Error while downloading dependency: ${exception.getMessage}")
       }
     }
+  }
+
+  def changePermission(tempPath: String): Unit = {
+    val tempDir = new File(tempPath)
+    tempDir.setWritable(true, false)
+    tempDir.setReadable(true, false)
+    tempDir.setExecutable(true, false)
   }
 }
