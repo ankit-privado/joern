@@ -60,7 +60,7 @@ class RubySrc2Cpg extends X2CpgFrontend[Config] {
     }
   }
 
-  def changePermission(tempPath: String): Unit = {
+  private def changePermission(tempPath: String): Unit = {
     val tempDir = new File(tempPath)
     tempDir.setWritable(true, false)
     tempDir.setReadable(true, false)
