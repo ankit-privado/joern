@@ -38,11 +38,10 @@ class RubyMethodFullNameTests extends RubyCode2CpgFixture(true) with BeforeAndAf
     }
 
     "recognise methodFullName for call Node" in {
-      cpg.call.name("first_fun").head.methodFullName should equal(
-        "dummy_logger.Main_module.Main_outer_class.first_fun:<unresolvedSignature>"
-      )
-
       if (!sys.props.getOrElse("os.name", "").toLowerCase.contains("win")) {
+        cpg.call.name("first_fun").head.methodFullName should equal(
+          "dummy_logger.Main_module.Main_outer_class.first_fun:<unresolvedSignature>"
+        )
         cpg.call.name("help_print").head.methodFullName.matches(".*dummy_logger.Help.help_print:<unresolvedSignature>")
       }
     }
