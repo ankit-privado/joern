@@ -835,8 +835,7 @@ class AstCreator(
       }
     val name = s"${getActualMethodName(ctx.getText)}$nameSuffix"
     val methodFullName = packageContext.packageTable
-      .getMethodFullNameUsingName(packageStack.toList, name)
-      .headOption match {
+      .getMethodFullNameUsingName(packageStack.toList, name) match {
       case None if isBuiltin(name)            => prefixAsBuiltin(name) // TODO: Probably not super precise
       case Some(externalDependencyResolution) => externalDependencyResolution
       case None                               => DynamicCallUnknownFullName
@@ -1191,13 +1190,6 @@ class AstCreator(
       .lineNumberEnd(ctx.END().getSymbol.getLine)
       .filename(filename)
     callNode.methodFullName(methodFullName)
-
-    val classType = if (classStack.isEmpty) "Standalone" else classStack.top
-    val classPath = classStack.reverse.toList match {
-      case _ :: xs => xs.mkString(":") + ":"
-      case _       => ""
-    }
-    packageContext.packageTable.addPackageMethod(packageContext.moduleName, callNode.name, classPath, classType)
 
     // process yield calls.
     astBody

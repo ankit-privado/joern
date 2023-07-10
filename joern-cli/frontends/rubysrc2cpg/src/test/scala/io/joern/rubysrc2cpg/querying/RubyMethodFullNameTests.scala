@@ -85,4 +85,49 @@ class RubyMethodFullNameTests extends RubyCode2CpgFixture with BeforeAndAfterAll
       }
     }
   }
+
+  "Code for methodFullName on builtin function" should {
+    val cpg = code("""
+        |class Outer
+        | def fun()
+        |   puts "value"
+        | end
+        |end
+        |""".stripMargin)
+      .withConfig(config)
+
+    "recognise call node" in {
+      cpg.call.name("puts").size shouldBe 1
+    }
+
+    "recognise methodFullName for call node" in {
+      cpg.call.name("puts").head.methodFullName shouldBe "__builtin:puts"
+    }
+  }
+
+  "Code for methodFullName when method present on same file" should {
+    val cpg = code(
+      """
+        |module Outer
+        | class Inner
+        |   def fun()
+        |     puts "value"
+        |   end
+        | end
+        |end
+        |
+        |temp = Outer.Inner.new
+        |temp.fun()
+        |""".stripMargin,
+      "main.rb"
+    ).withConfig(config)
+
+    "recognise call node" in {
+      cpg.call.name("fun").size shouldBe 1
+    }
+
+    "recognise methodFullName for call Node" in {
+      cpg.call.name("fun").head.methodFullName shouldBe "main.rb::program:Outer:Inner:fun"
+    }
+  }
 }
