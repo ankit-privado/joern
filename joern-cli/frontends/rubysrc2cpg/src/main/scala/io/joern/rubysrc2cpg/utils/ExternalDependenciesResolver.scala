@@ -37,7 +37,7 @@ object ExternalDependenciesResolver {
   }
 
   private def fetchDependencyList(inputPath: String): List[(String, String)] = {
-    val gemFileContent = Source.fromFile(s"$inputPath${java.io.File.separator}Gemfile").mkString
+    val gemFileContent = File(s"$inputPath${java.io.File.separator}Gemfile").contentAsString
     val gemRegex       = """gem ['"]([^'"]+)['"](?:,\s*['"]([^'"]+)['"])?""".r
 
     gemRegex
